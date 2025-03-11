@@ -1,6 +1,10 @@
 import ipaddress
 import maxminddb
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException, status
+from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+
 
 city_reader = maxminddb.open_database('GeoLite2-City.mmdb')
 asn_reader = maxminddb.open_database('GeoLite2-ASN.mmdb')
@@ -190,8 +194,13 @@ def query():
             print("\n")
             
 app = FastAPI()
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(status.HTTP_429_TOO_MANY_REQUESTS, _rate_limit_exceeded_handler)
 
 @app.get("/")
+@limiter.limit("10/second")
 def api(request: Request, ip: str = None):
     if not ip:
         xff = request.headers.get("x-forwarded-for")
@@ -202,7 +211,8 @@ def api(request: Request, ip: str = None):
     return get_ip_info(ip.strip())
 
 @app.get("/{ip}")
-def path_api(ip):
+@limiter.limit("10/second")
+def path_api(request: Request, ip: str):
     return get_ip_info(ip)
 
 if __name__ == '__main__':
