@@ -1,6 +1,6 @@
 #!/bin/bash
 VERSION=${1:-v2}
-docker build  . -f Dockerfile -t aolifu/ipapi:$VERSION
+docker build  ./docker -f docker/Dockerfile -t aolifu/ipapi:$VERSION
 docker push aolifu/ipapi:$VERSION
 docker stop ipapi
 docker rm ipapi
