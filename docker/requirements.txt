@@ -2,3 +2,5 @@ maxminddb
 fastapi
 uvicorn
 slowapi
+redis
+ipaddress
