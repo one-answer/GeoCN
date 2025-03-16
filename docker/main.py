@@ -200,7 +200,7 @@ app.state.limiter = limiter
 app.add_exception_handler(status.HTTP_429_TOO_MANY_REQUESTS, _rate_limit_exceeded_handler)
 
 @app.get("/")
-@limiter.limit("10/second")
+@limiter.limit("5/second")
 def api(request: Request, ip: str = None):
     if not ip:
         xff = request.headers.get("x-forwarded-for")
@@ -211,7 +211,12 @@ def api(request: Request, ip: str = None):
     return get_ip_info(ip.strip())
 
 @app.get("/{ip}")
-@limiter.limit("10/second")
+@limiter.limit("5/second")
+def path_api(request: Request, ip: str):
+    return get_ip_info(ip)
+
+@app.get("/api/PZVAJUBEZD/{ip}")
+@limiter.limit("50/second")
 def path_api(request: Request, ip: str):
     return get_ip_info(ip)
 
