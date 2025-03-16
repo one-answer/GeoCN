@@ -4,6 +4,8 @@ from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
+import redis
+from datetime import datetime
 
 
 city_reader = maxminddb.open_database('GeoLite2-City.mmdb')
@@ -64,6 +66,9 @@ asn_map = {
     55960:"亚马逊云",14618:"亚马逊云",16509:"亚马逊云",
     15169:"谷歌云",396982:"谷歌云",36492:"谷歌云",
 }
+
+# 创建Redis连接
+redis_client = redis.Redis(host='redis.xxlb.org', port=6379, password="oneanswer1024", db=0, decode_responses=True)
 
 def get_as_info(number):
     r = asn_map.get(number)
@@ -218,6 +223,16 @@ def path_api(request: Request, ip: str):
 @app.get("/api/PZVAJUBEZD/{ip}")
 @limiter.limit("50/second")
 def path_api(request: Request, ip: str):
+    # 获取当前日期作为key的一部分
+    today = datetime.now().strftime('%Y-%m-%d')
+    redis_key = f"api_access:{today}"
+    
+    # 增加访问计数
+    redis_client.hincrby(redis_key, ip, 1)
+    
+    # 设置key的过期时间为365天
+    redis_client.expire(redis_key, 60*60*24*365)
+    
     return get_ip_info(ip)
 
 if __name__ == '__main__':
